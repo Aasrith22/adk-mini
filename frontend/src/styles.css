@@ -1,0 +1,193 @@
+:root {
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+  line-height: 1.5;
+  color: #10212e;
+  background: linear-gradient(160deg, #f7fbff 0%, #ecf6ff 40%, #e8f2f7 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+}
+
+.app-header {
+  margin-bottom: 24px;
+}
+
+.app-header h1 {
+  margin: 6px 0 12px;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  color: #0e2c3f;
+}
+
+.app-header p {
+  margin: 0;
+  color: #355064;
+  max-width: 70ch;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0d6072;
+}
+
+.uploader-card {
+  background: #ffffff;
+  border: 1px solid #d6e4ef;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 14px 36px rgba(16, 33, 46, 0.08);
+}
+
+.uploader-title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.uploader-subtitle {
+  margin-top: 8px;
+  color: #4d687a;
+  font-size: 0.95rem;
+}
+
+.uploader-subtitle span {
+  font-weight: 600;
+}
+
+.upload-form {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.file-label {
+  font-size: 0.9rem;
+  color: #264457;
+  font-weight: 600;
+}
+
+.file-input {
+  width: 100%;
+  border: 1px solid #bcd0df;
+  border-radius: 10px;
+  background: #f6fbff;
+  color: #1e3647;
+  padding: 10px;
+}
+
+.upload-button {
+  width: fit-content;
+  min-width: 140px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #ffffff;
+  background: #0e7a8b;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.upload-button:hover:enabled {
+  transform: translateY(-1px);
+}
+
+.upload-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upload-message {
+  margin-top: 14px;
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
+.upload-message-idle {
+  color: #355064;
+}
+
+.upload-message-uploading {
+  color: #0f5e8e;
+}
+
+.upload-message-success {
+  color: #0b7b45;
+}
+
+.upload-message-error {
+  color: #a82628;
+}
+
+.upload-result {
+  margin-top: 16px;
+  border-top: 1px solid #e5edf4;
+  padding-top: 14px;
+}
+
+.upload-result h3 {
+  margin: 0 0 12px;
+  color: #17384a;
+}
+
+.upload-result dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+
+.upload-result div {
+  background: #f8fbff;
+  border: 1px solid #e2ebf2;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.upload-result dt {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #3a5a6c;
+}
+
+.upload-result dd {
+  margin: 6px 0 0;
+  font-size: 0.95rem;
+  color: #10212e;
+  word-break: break-word;
+}
+
+@media (max-width: 680px) {
+  .app-shell {
+    padding: 20px 12px 36px;
+  }
+
+  .uploader-card {
+    padding: 16px;
+  }
+
+  .upload-result dl {
+    grid-template-columns: 1fr;
+  }
+}
