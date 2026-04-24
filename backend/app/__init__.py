@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 
 from app.config import Config
 from app.routes.generate import generate_bp
@@ -36,5 +37,17 @@ def create_app() -> Flask:
     @app.get("/api/health")
     def health_check():
         return jsonify({"status": "ok", "service": app.config["APP_NAME"]}), 200
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_exception(exc: Exception):
+        if isinstance(exc, HTTPException):
+            return exc
+
+        app.logger.exception("Unhandled server error at path %s", request.path)
+
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "Unhandled server error.", "details": str(exc)}), 500
+
+        return jsonify({"error": "Unhandled server error."}), 500
 
     return app

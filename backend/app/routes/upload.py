@@ -34,9 +34,8 @@ def upload_document():
     saved_path = upload_dir / f"{document_id}-{safe_filename}"
     uploaded_file.save(saved_path)
 
-    ingestion_service = get_ingestion_service()
-
     try:
+        ingestion_service = get_ingestion_service()
         ingestion_result = ingestion_service.ingest_pdf(
             saved_path=saved_path,
             original_filename=safe_filename,
@@ -57,7 +56,6 @@ def upload_document():
             ),
             500,
         )
-
     saved_path.unlink(missing_ok=True)
 
     return jsonify({"status": "success", "data": ingestion_result}), 201

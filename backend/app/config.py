@@ -11,11 +11,11 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", str(25 * 1024 * 1024)))
 
     UPLOAD_DIR: Path | str = os.getenv("UPLOAD_DIR", "data/uploads")
-    QDRANT_PATH: Path | str = os.getenv("QDRANT_PATH", os.getenv("CHROMA_PERSIST_DIR", "data/qdrant"))
-    QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", os.getenv("CHROMA_COLLECTION", "academic_materials"))
+    QDRANT_PATH: Path | str = os.getenv("QDRANT_PATH", "data/qdrant")
+    QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "academic_materials")
 
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
-    GOOGLE_EMBEDDING_MODEL = os.getenv("GOOGLE_EMBEDDING_MODEL", "text-embedding-004")
+    GOOGLE_EMBEDDING_MODEL = os.getenv("GOOGLE_EMBEDDING_MODEL", "models/gemini-embedding-001")
 
     ADK_MODEL = os.getenv("ADK_MODEL", "gemini-1.5-flash")
     ADK_ROUTER_MODEL = os.getenv("ADK_ROUTER_MODEL", ADK_MODEL)
@@ -29,19 +29,39 @@ class Config:
     MIN_CHUNKS_BEFORE_ENRICHMENT = int(os.getenv("MIN_CHUNKS_BEFORE_ENRICHMENT", "8"))
     MIN_SOURCE_CHARACTERS = int(os.getenv("MIN_SOURCE_CHARACTERS", "4000"))
 
+    @staticmethod
+    def _normalize_embedding_model(model_name: str) -> str:
+        cleaned = model_name.strip()
+        if not cleaned:
+            return "models/gemini-embedding-001"
+
+        aliases = {
+            "text-embedding-004": "models/gemini-embedding-001",
+            "models/text-embedding-004": "models/gemini-embedding-001",
+            "gemini-embedding-001": "models/gemini-embedding-001",
+            "gemini-embedding-002": "models/gemini-embedding-002",
+        }
+        if cleaned in aliases:
+            return aliases[cleaned]
+
+        if cleaned.startswith("models/"):
+            return cleaned
+
+        return f"models/{cleaned}"
+
     @classmethod
     def refresh_from_env(cls) -> None:
         cls.APP_NAME = os.getenv("APP_NAME", "adk-mini-backend")
         cls.MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", str(25 * 1024 * 1024)))
 
         cls.UPLOAD_DIR = os.getenv("UPLOAD_DIR", "data/uploads")
-        cls.QDRANT_PATH = os.getenv("QDRANT_PATH", os.getenv("CHROMA_PERSIST_DIR", "data/qdrant"))
-        cls.QDRANT_COLLECTION = os.getenv(
-            "QDRANT_COLLECTION", os.getenv("CHROMA_COLLECTION", "academic_materials")
-        )
+        cls.QDRANT_PATH = os.getenv("QDRANT_PATH", "data/qdrant")
+        cls.QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "academic_materials")
 
         cls.GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
-        cls.GOOGLE_EMBEDDING_MODEL = os.getenv("GOOGLE_EMBEDDING_MODEL", "models/text-embedding-004")
+        cls.GOOGLE_EMBEDDING_MODEL = cls._normalize_embedding_model(
+            os.getenv("GOOGLE_EMBEDDING_MODEL", "models/gemini-embedding-001")
+        )
 
         cls.ADK_MODEL = os.getenv("ADK_MODEL", "gemini-2.5-flash-lite")
         cls.ADK_ROUTER_MODEL = os.getenv("ADK_ROUTER_MODEL", cls.ADK_MODEL)
@@ -75,4 +95,8 @@ class Config:
         if not cls.GOOGLE_API_KEY:
             raise RuntimeError(
                 "GOOGLE_API_KEY is required for embeddings. Set it in your environment or .env file."
+            )
+        if not cls.GOOGLE_EMBEDDING_MODEL:
+            raise RuntimeError(
+                "GOOGLE_EMBEDDING_MODEL is required. Use models/gemini-embedding-001 or models/gemini-embedding-002."
             )

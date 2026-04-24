@@ -1,4 +1,5 @@
 import { DocumentUploader } from "./components/DocumentUploader";
+import { GenerationStudio } from "./components/GenerationStudio";
 
 export default function App(): JSX.Element {
   return (
@@ -12,6 +13,7 @@ export default function App(): JSX.Element {
       </header>
 
       <DocumentUploader />
+      <GenerationStudio />
     </main>
   );
 }

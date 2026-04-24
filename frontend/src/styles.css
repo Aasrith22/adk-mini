@@ -178,6 +178,280 @@ body {
   word-break: break-word;
 }
 
+.generator-card {
+  margin-top: 20px;
+  background: #ffffff;
+  border: 1px solid #d6e4ef;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 14px 36px rgba(16, 33, 46, 0.08);
+}
+
+.generator-title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.generator-subtitle {
+  margin-top: 8px;
+  color: #4d687a;
+  font-size: 0.95rem;
+}
+
+.generator-subtitle span {
+  font-weight: 600;
+}
+
+.generator-form {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.generator-label {
+  font-size: 0.9rem;
+  color: #264457;
+  font-weight: 600;
+}
+
+.generator-input {
+  width: 100%;
+  border: 1px solid #bcd0df;
+  border-radius: 10px;
+  background: #f6fbff;
+  color: #1e3647;
+  padding: 10px;
+  font: inherit;
+  resize: vertical;
+}
+
+.generator-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+
+.generator-select {
+  min-width: 180px;
+  border: 1px solid #bcd0df;
+  border-radius: 10px;
+  background: #f6fbff;
+  color: #1e3647;
+  padding: 10px;
+  font: inherit;
+}
+
+.generate-button {
+  width: fit-content;
+  min-width: 140px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #ffffff;
+  background: #1a5da5;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.generate-button:hover:enabled {
+  transform: translateY(-1px);
+}
+
+.generate-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.generation-message {
+  margin-top: 14px;
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
+.generation-message-idle {
+  color: #355064;
+}
+
+.generation-message-running {
+  color: #0f5e8e;
+}
+
+.generation-thread {
+  margin-top: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.thread-empty {
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px dashed #bfd2e0;
+  color: #3f5d70;
+  background: #f8fbff;
+}
+
+.thread-item {
+  display: grid;
+  gap: 10px;
+}
+
+.thread-message {
+  border: 1px solid #dce8f1;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fbfdff;
+}
+
+.thread-message-user {
+  background: #f5fbff;
+}
+
+.thread-message-assistant {
+  background: #ffffff;
+}
+
+.thread-role {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #31566b;
+}
+
+.thread-query {
+  margin: 6px 0 6px;
+  color: #10212e;
+}
+
+.thread-meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #4a6476;
+}
+
+.thread-loading {
+  margin: 8px 0 0;
+  color: #1c5987;
+}
+
+.thread-error {
+  margin: 8px 0 0;
+  color: #a82628;
+  font-weight: 600;
+}
+
+.generation-result-card {
+  margin-top: 10px;
+  display: grid;
+  gap: 12px;
+}
+
+.generation-result-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  font-size: 0.9rem;
+  color: #2e4e61;
+}
+
+.generation-result-header p {
+  margin: 0;
+}
+
+.result-layout {
+  display: grid;
+  gap: 12px;
+}
+
+.result-section {
+  border: 1px solid #e0e9f0;
+  border-radius: 10px;
+  padding: 12px;
+  background: #f9fcff;
+}
+
+.result-section h3,
+.result-section h4,
+.result-section h5 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #15364a;
+}
+
+.result-section p {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #1f3a4d;
+}
+
+.quiz-list,
+.plan-list,
+.source-context-list {
+  display: grid;
+  gap: 10px;
+}
+
+.quiz-item,
+.plan-item,
+.source-context-item,
+.flashcard-item {
+  border: 1px solid #d9e6ef;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.quiz-question {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.quiz-options {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.quiz-answer,
+.quiz-explanation,
+.quiz-objective,
+.plan-focus,
+.plan-self-test,
+.source-context-meta,
+.flashcard-meta {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
+.flashcards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.flashcard-front {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.flashcard-back {
+  margin: 0 0 8px;
+}
+
+.plan-subtitle {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: #20465c;
+}
+
+.plan-item ul {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
 @media (max-width: 680px) {
   .app-shell {
     padding: 20px 12px 36px;
@@ -187,7 +461,15 @@ body {
     padding: 16px;
   }
 
+  .generator-card {
+    padding: 16px;
+  }
+
   .upload-result dl {
+    grid-template-columns: 1fr;
+  }
+
+  .flashcards-grid {
     grid-template-columns: 1fr;
   }
 }

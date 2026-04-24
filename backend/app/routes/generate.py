@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request
 
 from app.services.generation import VALID_OUTPUT_TYPES, get_generation_service
 
@@ -33,8 +33,4 @@ def generate_artifact():
         )
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
-    except (RuntimeError, TypeError) as exc:
-        current_app.logger.exception("Generation failed for query: %s", query)
-        return jsonify({"error": "Generation failed.", "details": str(exc)}), 500
-
     return jsonify({"status": "success", "data": generation_result}), 200

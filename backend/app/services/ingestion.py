@@ -86,8 +86,9 @@ class DocumentIngestionService:
         for idx, chunk in enumerate(all_chunks):
             chunk.metadata["chunk_index"] = idx
 
-        chunk_ids = [f"{document_id}:chunk:{idx}" for idx in range(len(all_chunks))]
-        self.vector_store.add_documents(all_chunks, ids=chunk_ids)
+        # Let langchain-qdrant generate UUID point IDs for compatibility with
+        # local Qdrant storage.
+        self.vector_store.add_documents(all_chunks)
 
         return {
             "document_id": document_id,
