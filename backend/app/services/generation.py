@@ -12,295 +12,18 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-from app.services.adk_runtime import ADKAgentBundle, OutputType
-from app.services.vector_store import build_qdrant_vector_store
+from app.agents import ADKAgentBundle, OutputType
+from app.agents.prompts import (
+    GENERATION_PROMPT_TEMPLATES,
+    INTENT_ROUTER_PROMPT_TEMPLATE,
+    OUTPUT_SCHEMAS,
+    RETRIEVAL_SYNTHESIS_PROMPT_TEMPLATE,
+)
+from app.core.vector_store import build_qdrant_vector_store
 
 VALID_OUTPUT_TYPES = ("quiz", "flashcards", "study_plan")
-
-INTENT_ROUTER_PROMPT_TEMPLATE = """
-You are {agent_name}.
-Role instruction: {agent_instruction}
-
-Classify the user query into exactly one output type.
-Allowed output types:
-- quiz
-- flashcards
-- study_plan
-
-Return ONLY a valid JSON object with this schema:
-{{
-  "output_type": "quiz|flashcards|study_plan",
-  "reason": "short reason"
-}}
-
-User query:
-{query}
-""".strip()
-
-RETRIEVAL_SYNTHESIS_PROMPT_TEMPLATE = """
-You are {agent_name}.
-Role instruction: {agent_instruction}
-
-Given the retrieval context, extract the most relevant facts for generation.
-Rules:
-- Do not invent facts.
-- Preserve definitions, key points, formulas, and dependencies.
-- Keep the summary under 2200 characters.
-- Keep academic precision.
-
-User query:
-{query}
-
-Retrieved context:
-{retrieved_context}
-""".strip()
-
-QUIZ_GENERATION_PROMPT_TEMPLATE = """
-You are {agent_name}.
-Role instruction: {agent_instruction}
-
-Produce a rigorous quiz response in STRICT JSON matching the schema below.
-Return JSON only. No markdown. No prose outside JSON.
-
-Schema:
-{schema_json}
-
-Generation constraints:
-- Use only information from the condensed context and source context.
-- Generate 5 to 10 high-quality MCQ questions.
-- Each question must have exactly 4 options.
-- answer_index must be 0-3.
-- Include concise explanations.
-- Keep difficulty levels balanced.
-- output_type must be \"quiz\".
-
-User query:
-{query}
-
-Condensed context:
-{condensed_context}
-
-Source context snippets:
-{source_context_json}
-""".strip()
-
-FLASHCARD_GENERATION_PROMPT_TEMPLATE = """
-You are {agent_name}.
-Role instruction: {agent_instruction}
-
-Produce flashcards in STRICT JSON matching the schema below.
-Return JSON only. No markdown. No prose outside JSON.
-
-Schema:
-{schema_json}
-
-Generation constraints:
-- Use only retrieved academic context.
-- Generate 8 to 16 flashcards.
-- Front should be short and testable.
-- Back should be precise and concise.
-- output_type must be \"flashcards\".
-
-User query:
-{query}
-
-Condensed context:
-{condensed_context}
-
-Source context snippets:
-{source_context_json}
-""".strip()
-
-STUDY_PLAN_GENERATION_PROMPT_TEMPLATE = """
-You are {agent_name}.
-Role instruction: {agent_instruction}
-
-Produce a revision plan in STRICT JSON matching the schema below.
-Return JSON only. No markdown. No prose outside JSON.
-
-Schema:
-{schema_json}
-
-Generation constraints:
-- Use only retrieved context.
-- Build a realistic weekly structure.
-- Include focused learning goals and revision tasks.
-- Add one self_test_prompt for each week.
-- output_type must be \"study_plan\".
-
-User query:
-{query}
-
-Condensed context:
-{condensed_context}
-
-Source context snippets:
-{source_context_json}
-""".strip()
-
-QUIZ_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "additionalProperties": False,
-    "required": ["output_type", "title", "instructions", "questions", "source_context"],
-    "properties": {
-        "output_type": {"const": "quiz"},
-        "title": {"type": "string", "minLength": 3},
-        "instructions": {"type": "string", "minLength": 5},
-        "questions": {
-            "type": "array",
-            "minItems": 5,
-            "maxItems": 10,
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": [
-                    "id",
-                    "question",
-                    "options",
-                    "answer_index",
-                    "explanation",
-                    "difficulty",
-                    "learning_objective",
-                ],
-                "properties": {
-                    "id": {"type": "string", "minLength": 1},
-                    "question": {"type": "string", "minLength": 10},
-                    "options": {
-                        "type": "array",
-                        "minItems": 4,
-                        "maxItems": 4,
-                        "items": {"type": "string", "minLength": 1},
-                    },
-                    "answer_index": {"type": "integer", "minimum": 0, "maximum": 3},
-                    "explanation": {"type": "string", "minLength": 5},
-                    "difficulty": {"type": "string", "enum": ["easy", "medium", "hard"]},
-                    "learning_objective": {"type": "string", "minLength": 4},
-                },
-            },
-        },
-        "source_context": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": ["source", "page", "snippet"],
-                "properties": {
-                    "source": {"type": "string", "minLength": 1},
-                    "page": {"type": ["integer", "null"]},
-                    "snippet": {"type": "string", "minLength": 1},
-                },
-            },
-        },
-    },
-}
-
-FLASHCARDS_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "additionalProperties": False,
-    "required": ["output_type", "title", "flashcards", "source_context"],
-    "properties": {
-        "output_type": {"const": "flashcards"},
-        "title": {"type": "string", "minLength": 3},
-        "flashcards": {
-            "type": "array",
-            "minItems": 8,
-            "maxItems": 16,
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": ["id", "front", "back", "difficulty", "tags"],
-                "properties": {
-                    "id": {"type": "string", "minLength": 1},
-                    "front": {"type": "string", "minLength": 3},
-                    "back": {"type": "string", "minLength": 5},
-                    "difficulty": {"type": "string", "enum": ["easy", "medium", "hard"]},
-                    "tags": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {"type": "string", "minLength": 1},
-                    },
-                },
-            },
-        },
-        "source_context": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": ["source", "page", "snippet"],
-                "properties": {
-                    "source": {"type": "string", "minLength": 1},
-                    "page": {"type": ["integer", "null"]},
-                    "snippet": {"type": "string", "minLength": 1},
-                },
-            },
-        },
-    },
-}
-
-STUDY_PLAN_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "additionalProperties": False,
-    "required": ["output_type", "title", "total_weeks", "weekly_plan", "source_context"],
-    "properties": {
-        "output_type": {"const": "study_plan"},
-        "title": {"type": "string", "minLength": 3},
-        "total_weeks": {"type": "integer", "minimum": 1, "maximum": 20},
-        "weekly_plan": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": ["week", "focus", "learning_goals", "revision_tasks", "self_test_prompt"],
-                "properties": {
-                    "week": {"type": "integer", "minimum": 1},
-                    "focus": {"type": "string", "minLength": 3},
-                    "learning_goals": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {"type": "string", "minLength": 3},
-                    },
-                    "revision_tasks": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {"type": "string", "minLength": 3},
-                    },
-                    "self_test_prompt": {"type": "string", "minLength": 5},
-                },
-            },
-        },
-        "source_context": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": ["source", "page", "snippet"],
-                "properties": {
-                    "source": {"type": "string", "minLength": 1},
-                    "page": {"type": ["integer", "null"]},
-                    "snippet": {"type": "string", "minLength": 1},
-                },
-            },
-        },
-    },
-}
-
-OUTPUT_SCHEMAS: dict[OutputType, dict[str, Any]] = {
-    "quiz": QUIZ_SCHEMA,
-    "flashcards": FLASHCARDS_SCHEMA,
-    "study_plan": STUDY_PLAN_SCHEMA,
-}
-
-GENERATION_PROMPT_TEMPLATES: dict[OutputType, str] = {
-    "quiz": QUIZ_GENERATION_PROMPT_TEMPLATE,
-    "flashcards": FLASHCARD_GENERATION_PROMPT_TEMPLATE,
-    "study_plan": STUDY_PLAN_GENERATION_PROMPT_TEMPLATE,
-}
 
 
 class GenerationService:
@@ -366,9 +89,12 @@ class GenerationService:
             | StrOutputParser()
         )
 
-    def generate(self, query: str, output_type: str | None = None) -> dict[str, Any]:
+    def generate(self, query: str, output_type: str | None = None, document_id: str | None = None) -> dict[str, Any]:
         resolved_output_type = self._resolve_output_type(query=query, output_type=output_type)
-        generation_chain = self._build_generation_chain(output_type=resolved_output_type)
+        generation_chain = self._build_generation_chain(
+            output_type=resolved_output_type,
+            document_id=document_id,
+        )
 
         payload = generation_chain.invoke(query)
 
@@ -408,10 +134,27 @@ class GenerationService:
             return "study_plan"
         return "quiz"
 
-    def _build_generation_chain(self, output_type: OutputType):
+    def _build_generation_chain(self, output_type: OutputType, document_id: str | None = None):
         prompt = ChatPromptTemplate.from_template(GENERATION_PROMPT_TEMPLATES[output_type])
         schema_json = json.dumps(OUTPUT_SCHEMAS[output_type], indent=2)
         generator_agent = self.adk_agents.generator_for(output_type)
+
+        # Build a retriever scoped to the specific document if document_id is provided.
+        # This prevents chunks from other uploads from polluting results.
+        if document_id:
+            qdrant_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="metadata.document_id",
+                        match=MatchValue(value=document_id),
+                    )
+                ]
+            )
+            retriever = self.vector_store.as_retriever(
+                search_kwargs={"k": self.retrieval_k, "filter": qdrant_filter}
+            )
+        else:
+            retriever = self.retriever
 
         def prepare_prompt_values(payload: dict[str, Any]) -> dict[str, Any]:
             query = payload["query"]
@@ -439,7 +182,7 @@ class GenerationService:
         return (
             {
                 "query": RunnablePassthrough(),
-                "retrieved_docs": RunnablePassthrough() | self.retriever,
+                "retrieved_docs": RunnablePassthrough() | retriever,
             }
             | RunnableLambda(prepare_prompt_values)
             | prompt

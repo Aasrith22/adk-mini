@@ -7,10 +7,10 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
+from app.agents import build_agent_bundle
 from app.config import Config
 from app.routes.generate import generate_bp
 from app.routes.upload import upload_bp
-from app.services.adk_runtime import build_agent_bundle
 
 
 def create_app() -> Flask:

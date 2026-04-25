@@ -14,6 +14,7 @@ def generate_artifact():
     query = payload.get("query")
     output_type_raw = payload.get("output_type")
     output_type = output_type_raw.strip() if isinstance(output_type_raw, str) else None
+    document_id = payload.get("document_id")
 
     if not isinstance(query, str) or not query.strip():
         return jsonify({"error": "Field 'query' is required and must be a non-empty string."}), 400
@@ -30,6 +31,7 @@ def generate_artifact():
         generation_result = generation_service.generate(
             query=query.strip(),
             output_type=output_type,
+            document_id=document_id if isinstance(document_id, str) else None,
         )
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400

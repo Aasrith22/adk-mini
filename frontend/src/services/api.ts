@@ -75,6 +75,7 @@ export type GenerationData = {
 export type GenerateArtifactInput = {
   query: string;
   outputType?: OutputType;
+  documentId?: string;
 };
 
 export type UploadData = {
@@ -132,6 +133,7 @@ export async function generateArtifact(input: GenerateArtifactInput): Promise<Ge
   const body = {
     query: input.query,
     ...(input.outputType ? { output_type: input.outputType } : {}),
+    ...(input.documentId ? { document_id: input.documentId } : {}),
   };
 
   const response = await fetch(`${API_BASE_URL}/api/generate`, {
@@ -153,4 +155,4 @@ export async function generateArtifact(input: GenerateArtifactInput): Promise<Ge
   return payload.data;
 }
 
-export { API_BASE_URL };
+// API_BASE_URL is intentionally kept private — not exposed to UI components.

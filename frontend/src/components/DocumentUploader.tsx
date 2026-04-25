@@ -1,20 +1,47 @@
-import { FormEvent, useMemo, useState } from "react";
-
-import { API_BASE_URL, UploadData, uploadDocument } from "../services/api";
+import { FormEvent, useCallback, useRef, useState } from "react";
+import { UploadData, uploadDocument } from "../services/api";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
-export function DocumentUploader(): JSX.Element {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadState, setUploadState] = useState<UploadState>("idle");
-  const [message, setMessage] = useState<string>("Select a PDF and upload it to build your vector store.");
-  const [result, setResult] = useState<UploadData | null>(null);
+type DocumentUploaderProps = {
+  onUploadSuccess: (data: UploadData) => void;
+  onProceed: () => void;
+  uploadData: UploadData | null;
+};
 
-  const canUpload = useMemo(() => selectedFile !== null && uploadState !== "uploading", [selectedFile, uploadState]);
+export function DocumentUploader({ onUploadSuccess, onProceed, uploadData }: DocumentUploaderProps): JSX.Element {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadState, setUploadState] = useState<UploadState>(uploadData ? "success" : "idle");
+  const [message, setMessage] = useState<string>("");
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleFile = (file: File | null) => {
+    if (file && file.type !== "application/pdf") {
+      setMessage("Only PDF files are supported.");
+      setUploadState("error");
+      return;
+    }
+    setSelectedFile(file);
+    setUploadState("idle");
+    setMessage("");
+  };
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0] ?? null;
+    handleFile(file);
+  }, []);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
-
     if (!selectedFile) {
       setUploadState("error");
       setMessage("Please choose a PDF file first.");
@@ -22,97 +49,121 @@ export function DocumentUploader(): JSX.Element {
     }
 
     setUploadState("uploading");
-    setMessage("Uploading and processing document...");
+    setMessage("Processing your document...");
 
     try {
       const data = await uploadDocument(selectedFile);
-      setResult(data);
+      onUploadSuccess(data);
       setUploadState("success");
-      setMessage("Document uploaded and indexed successfully.");
+      setMessage("Document uploaded and indexed successfully!");
       setSelectedFile(null);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Upload failed due to an unknown error.";
+      const errorMessage = error instanceof Error ? error.message : "Upload failed.";
       setUploadState("error");
       setMessage(errorMessage);
-      setResult(null);
     }
   };
 
+  const currentData = uploadData;
+
   return (
-    <section className="uploader-card" aria-label="Document uploader">
-      <h2 className="uploader-title">Document Upload</h2>
-      <p className="uploader-subtitle">
-        Backend endpoint: <span>{API_BASE_URL}/api/upload</span>
+    <section className="glass-card" aria-label="Document uploader">
+      <div className="section-icon">📄</div>
+      <h2 className="section-title">Upload Study Material</h2>
+      <p className="section-desc">
+        Drop a PDF file — your textbook, syllabus, or notes — and we'll chunk, embed, and index it for AI generation.
       </p>
 
-      <form className="upload-form" onSubmit={onSubmit}>
-        <label className="file-label" htmlFor="pdf-file-input">
-          PDF file
-        </label>
-        <input
-          id="pdf-file-input"
-          className="file-input"
-          type="file"
-          accept="application/pdf"
-          onChange={(event) => {
-            const nextFile = event.target.files?.[0] ?? null;
-            setSelectedFile(nextFile);
-            setUploadState("idle");
-            setResult(null);
-            setMessage(nextFile ? `Ready to upload ${nextFile.name}` : "Select a PDF and upload it to build your vector store.");
-          }}
-        />
+      <form onSubmit={onSubmit}>
+        <div
+          className={`drop-zone ${dragOver ? "drag-over" : ""}`}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+          onClick={() => fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click(); }}
+        >
+          <div className="drop-zone-icon">⬆️</div>
+          <p className="drop-zone-text">
+            Drag &amp; drop a PDF here, or <strong>click to browse</strong>
+          </p>
+          <p className="drop-zone-hint">Supports PDF files up to 25 MB</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            style={{ display: "none" }}
+            onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+          />
+        </div>
 
-        <button className="upload-button" type="submit" disabled={!canUpload}>
-          {uploadState === "uploading" ? "Uploading..." : "Upload PDF"}
-        </button>
+        {selectedFile && (
+          <div className="file-preview">
+            <span className="file-preview-icon">📎</span>
+            <div className="file-preview-info">
+              <p className="file-preview-name">{selectedFile.name}</p>
+              <p className="file-preview-size">{formatFileSize(selectedFile.size)}</p>
+            </div>
+            <button
+              type="button"
+              className="file-remove"
+              onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
+              aria-label="Remove file"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        <div className="form-actions">
+          <button
+            className="btn btn-primary"
+            type="submit"
+            disabled={!selectedFile || uploadState === "uploading"}
+          >
+            {uploadState === "uploading" ? (
+              <>
+                <span className="spinner" />
+                Processing...
+              </>
+            ) : (
+              "Upload & Index"
+            )}
+          </button>
+
+          {currentData && (
+            <button type="button" className="btn btn-secondary" onClick={onProceed}>
+              Proceed to Generate →
+            </button>
+          )}
+        </div>
       </form>
 
-      <p className={`upload-message upload-message-${uploadState}`}>{message}</p>
+      {message && uploadState !== "idle" && (
+        <div className={`status-message ${
+          uploadState === "success" ? "status-success" :
+          uploadState === "error" ? "status-error" : "status-info"
+        }`}>
+          {message}
+        </div>
+      )}
 
-      {result && (
-        <div className="upload-result" aria-live="polite">
-          <h3>Ingestion Summary</h3>
-          <dl>
-            <div>
-              <dt>Document ID</dt>
-              <dd>{result.document_id}</dd>
-            </div>
-            <div>
-              <dt>Source</dt>
-              <dd>{result.source_file}</dd>
-            </div>
-            <div>
-              <dt>Pages</dt>
-              <dd>{result.pages_loaded}</dd>
-            </div>
-            <div>
-              <dt>Base Chunks</dt>
-              <dd>{result.base_chunks}</dd>
-            </div>
-            <div>
-              <dt>Enrichment Chunks</dt>
-              <dd>{result.enrichment_chunks}</dd>
-            </div>
-            <div>
-              <dt>Total Stored Chunks</dt>
-              <dd>{result.stored_chunks}</dd>
-            </div>
-            <div>
-              <dt>Embedding Model</dt>
-              <dd>{result.embedding_model}</dd>
-            </div>
-            <div>
-              <dt>Chunking</dt>
-              <dd>
-                {result.chunking.chunk_size}/{result.chunking.chunk_overlap}
-              </dd>
-            </div>
-            <div>
-              <dt>Enrichment Applied</dt>
-              <dd>{result.enrichment_applied ? "Yes" : "No"}</dd>
-            </div>
-          </dl>
+      {currentData && (
+        <div className="upload-summary">
+          <div className="summary-stat">
+            <span className="summary-stat-value">{currentData.pages_loaded}</span>
+            <span className="summary-stat-label">Pages</span>
+          </div>
+          <div className="summary-stat">
+            <span className="summary-stat-value">{currentData.stored_chunks}</span>
+            <span className="summary-stat-label">Chunks Indexed</span>
+          </div>
+          <div className="summary-stat">
+            <span className="summary-stat-value">{currentData.enrichment_applied ? "Yes" : "No"}</span>
+            <span className="summary-stat-label">Web Enriched</span>
+          </div>
         </div>
       )}
     </section>

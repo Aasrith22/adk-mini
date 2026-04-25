@@ -5,14 +5,14 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-import fitz
 from flask import current_app
 from langchain_core.documents import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from app.core.vector_store import build_qdrant_vector_store
 from app.services.tavily_enrichment import TavilyEnrichmentService
-from app.services.vector_store import build_qdrant_vector_store
+from utils.document_parser import clean_text, load_pdf_pages
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class DocumentIngestionService:
         )
 
     def ingest_pdf(self, saved_path: Path, original_filename: str, document_id: str) -> dict[str, object]:
-        pages = self._load_pdf_pages(saved_path=saved_path)
+        pages = load_pdf_pages(saved_path=saved_path)
         if not pages:
             raise ValueError("The uploaded PDF did not contain extractable text.")
 
@@ -114,7 +114,7 @@ class DocumentIngestionService:
 
         chunks: list[Document] = []
         for doc in split_docs:
-            cleaned_text = self._clean_text(doc.page_content)
+            cleaned_text = clean_text(doc.page_content)
             if not cleaned_text:
                 continue
 
@@ -133,8 +133,8 @@ class DocumentIngestionService:
     def _annotate_enrichment_chunks(self, chunks: list[Document], ingested_at: str) -> list[Document]:
         annotated: list[Document] = []
         for chunk in chunks:
-            cleaned_text = self._clean_text(chunk.page_content)
-            if not cleaned_text:
+            cleaned = clean_text(chunk.page_content)
+            if not cleaned:
                 continue
 
             metadata = {
@@ -142,7 +142,7 @@ class DocumentIngestionService:
                 "ingested_at": ingested_at,
                 "chunk_strategy": "tavily_enrichment",
             }
-            annotated.append(Document(page_content=cleaned_text, metadata=metadata))
+            annotated.append(Document(page_content=cleaned, metadata=metadata))
 
         return annotated
 
@@ -154,45 +154,22 @@ class DocumentIngestionService:
         return total_characters < self.min_source_characters
 
     def _build_enrichment_query(self, chunks: list[Document], source_file: str) -> str:
-        seed_text = " ".join(chunk.page_content for chunk in chunks[:2])
-        seed_text = re.sub(r"\s+", " ", seed_text).strip()[:600]
+        """Build a Tavily search query that stays within the 400-char API limit."""
         topic = Path(source_file).stem.replace("_", " ")
+        prefix = f"academic references and prerequisites for {topic}: "
+
+        # Tavily hard-limits queries to 400 characters.
+        max_seed_len = 400 - len(prefix) - 10  # safety margin
+        if max_seed_len < 30:
+            return prefix.strip()
+
+        seed_text = " ".join(chunk.page_content for chunk in chunks[:2])
+        seed_text = re.sub(r"\s+", " ", seed_text).strip()[:max_seed_len]
 
         if seed_text:
-            return (
-                f"Find concise academic references and prerequisite concepts for {topic}. "
-                f"Focus on this context: {seed_text}"
-            )
+            return f"{prefix}{seed_text}"
 
-        return f"Find concise academic references and prerequisite concepts for {topic}."
-
-    def _load_pdf_pages(self, saved_path: Path) -> list[Document]:
-        parsed_pages: list[Document] = []
-
-        with fitz.open(str(saved_path)) as pdf_document:
-            total_pages = pdf_document.page_count
-            for index in range(total_pages):
-                page = pdf_document.load_page(index)
-                page_text = self._clean_text(page.get_text("text"))
-                if not page_text:
-                    continue
-
-                parsed_pages.append(
-                    Document(
-                        page_content=page_text,
-                        metadata={
-                            "source": str(saved_path),
-                            "page": index + 1,
-                            "total_pages": total_pages,
-                        },
-                    )
-                )
-
-        return parsed_pages
-
-    @staticmethod
-    def _clean_text(text: str) -> str:
-        return re.sub(r"\s+", " ", text).strip()
+        return prefix.strip()
 
 
 def get_ingestion_service() -> DocumentIngestionService:

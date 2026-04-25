@@ -31,8 +31,8 @@ class TavilyEnrichmentService:
                 include_raw_content=False,
                 max_results=self.max_results,
             )
-        except (RequestException, RuntimeError, ValueError, TypeError):
-            logger.exception("Tavily enrichment failed for query: %s", query)
+        except Exception:
+            logger.exception("Tavily enrichment failed for query: %.200s", query)
             return []
 
         results = response.get("results", [])
