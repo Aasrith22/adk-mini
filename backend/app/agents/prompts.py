@@ -69,14 +69,30 @@ Return JSON only. No markdown. No prose outside JSON.
 Schema:
 {schema_json}
 
-Generation constraints:
-- Use only information from the condensed context and source context.
-- Generate 5 to 10 high-quality MCQ questions.
-- Each question must have exactly 4 options.
-- answer_index must be 0-3.
-- Include concise explanations.
-- Keep difficulty levels balanced.
-- output_type must be \"quiz\".
+### How many questions to generate
+Look at the **User query** below. If the user explicitly states a number of questions
+(e.g. "give me 3 questions", "5 MCQs", "only 2"), generate EXACTLY that many.
+If no count is specified, default to 5.
+Never generate more or fewer than the resolved count.
+
+### Question-quality rules (MANDATORY)
+1. Every question MUST read like a real university exam or certification question.
+   Write each question as a direct, standalone academic question.
+2. NEVER begin or include phrases such as:
+   - "According to the provided context"
+   - "Based on the provided text"
+   - "From the context in unit X"
+   - "The context mentions"
+   - "As stated in the passage"
+   - Any similar meta-reference to "context", "passage", "text", or "provided material".
+3. Questions must test conceptual understanding, application, or analysis — not mere recall of context wording.
+4. Distractors (wrong options) must be plausible and clearly distinct from the correct answer.
+5. Each question must have exactly 4 options.
+6. answer_index must be 0-3.
+7. Include concise but informative explanations.
+8. Vary difficulty across easy, medium, and hard.
+9. output_type must be \"quiz\".
+10. Use only information from the condensed context and source context — do NOT hallucinate facts.
 
 User query:
 {query}
@@ -171,8 +187,8 @@ QUIZ_SCHEMA: dict[str, Any] = {
         "instructions": {"type": "string", "minLength": 5},
         "questions": {
             "type": "array",
-            "minItems": 5,
-            "maxItems": 10,
+            "minItems": 1,
+            "maxItems": 20,
             "items": {
                 "type": "object",
                 "additionalProperties": False,

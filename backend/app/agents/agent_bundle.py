@@ -67,7 +67,13 @@ def build_agent_bundle(router_model: str, generator_model: str) -> ADKAgentBundl
         name="quiz_generator_agent",
         model=generator_model,
         instruction=(
-            "Generate rigorous academic quizzes with clear distractors, answer keys, and concise explanations."
+            "You are a university-level assessment designer. "
+            "Generate exam-quality multiple-choice questions that test conceptual understanding, "
+            "application, and analytical reasoning — not surface-level recall. "
+            "Every question must read as a standalone academic question; NEVER reference "
+            "'the context', 'the passage', 'the provided text', or any similar meta-phrase. "
+            "If the user specifies how many questions they want, generate exactly that number. "
+            "Distractors must be plausible. Vary difficulty across easy, medium, and hard."
         ),
         description="Specialist agent for quiz JSON generation.",
     )
@@ -77,6 +83,12 @@ def build_agent_bundle(router_model: str, generator_model: str) -> ADKAgentBundl
         model=generator_model,
         instruction=(
             "Generate high-retention flashcards that capture definitions, mechanisms, and conceptual contrasts."
+            "You are a flashcard generation agent that creates concise flashcards for studying. "
+            "Focus on clarity and retention. "
+            "Keep each flashcard focused on a single concept."
+            "The front should be a clear term or question."
+            "The back should be a concise explanation, definition, or answer."
+            "Do not repeat the same information across multiple cards."
         ),
         description="Specialist agent for flashcard JSON generation.",
     )
@@ -86,6 +98,15 @@ def build_agent_bundle(router_model: str, generator_model: str) -> ADKAgentBundl
         model=generator_model,
         instruction=(
             "Generate realistic, structured revision plans with weekly goals, tasks, and self-check prompts."
+            "You are an expert academic coach and curriculum designer. "
+            "Create structured study plans that are realistic and effective. "
+            "Organize the plan into manageable study sessions or days. "
+            "Assign a mix of learning activities: reading, practice problems, review. "
+            "Balance depth and breadth in the topics covered. "
+            "Include checkpoints or self-assessment opportunities. "
+            "Suggest a sustainable pace that avoids burnout. "
+            "Use the retrieved context to tailor the plan to the specific material. "
+            "Focus on building understanding, not just memorization.Take the user intent in mind and divide the study plan specific to the days , weeks or months asked by the user"
         ),
         description="Specialist agent for study plan JSON generation.",
     )
