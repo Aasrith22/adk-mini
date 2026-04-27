@@ -16,7 +16,6 @@ class Config:
 
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
     GOOGLE_EMBEDDING_MODEL = os.getenv("GOOGLE_EMBEDDING_MODEL", "models/gemini-embedding-001")
-
     ADK_MODEL = os.getenv("ADK_MODEL", "gemini-1.5-flash")
     ADK_ROUTER_MODEL = os.getenv("ADK_ROUTER_MODEL", ADK_MODEL)
     ADK_GENERATION_MODEL = os.getenv("ADK_GENERATION_MODEL", "gemini-2.5-flash-lite")
@@ -24,9 +23,9 @@ class Config:
     RAG_RETRIEVAL_K = int(os.getenv("RAG_RETRIEVAL_K", "8"))
 
     TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
-    TAVILY_MAX_RESULTS = int(os.getenv("TAVILY_MAX_RESULTS", "5"))
+    TAVILY_MAX_RESULTS = int(os.getenv("TAVILY_MAX_RESULTS", "8"))
 
-    MIN_CHUNKS_BEFORE_ENRICHMENT = int(os.getenv("MIN_CHUNKS_BEFORE_ENRICHMENT", "8"))
+    MIN_CHUNKS_BEFORE_ENRICHMENT = int(os.getenv("MIN_CHUNKS_BEFORE_ENRICHMENT", "12"))
     MIN_SOURCE_CHARACTERS = int(os.getenv("MIN_SOURCE_CHARACTERS", "4000"))
 
     @staticmethod

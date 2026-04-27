@@ -1,7 +1,3 @@
-"""Prompt templates and JSON output schemas for generation agents.
-
-Centralises all LLM prompt engineering in one file, keeping services lean.
-"""
 
 from __future__ import annotations
 
@@ -9,9 +5,6 @@ from typing import Any
 
 from app.agents.agent_bundle import OutputType
 
-# ---------------------------------------------------------------------------
-# Intent Router
-# ---------------------------------------------------------------------------
 
 INTENT_ROUTER_PROMPT_TEMPLATE = """
 You are {agent_name}.
@@ -33,10 +26,6 @@ User query:
 {query}
 """.strip()
 
-# ---------------------------------------------------------------------------
-# Retrieval Synthesis
-# ---------------------------------------------------------------------------
-
 RETRIEVAL_SYNTHESIS_PROMPT_TEMPLATE = """
 You are {agent_name}.
 Role instruction: {agent_instruction}
@@ -54,10 +43,6 @@ User query:
 Retrieved context:
 {retrieved_context}
 """.strip()
-
-# ---------------------------------------------------------------------------
-# Generation Prompts (one per output type)
-# ---------------------------------------------------------------------------
 
 QUIZ_GENERATION_PROMPT_TEMPLATE = """
 You are {agent_name}.
@@ -115,10 +100,12 @@ Schema:
 {schema_json}
 
 Generation constraints:
-- Use only retrieved academic context.
-- Generate 8 to 16 flashcards.
+- Use only retrieved academic context.Ensure the flashcards give a conceptual understanding and also real time examples for references when required.
+-The information in the flashcards must not be repeated. If sufficient information is not available , use the existing information to create flashcards which give another perspective to the user query.
+- Generate 10 to 16 flashcards.
 - Front should be short and testable.
-- Back should be precise and concise.
+- Back should be precise and concise.Include formulas, definitions, examples, and applications as relevant.
+- Vary difficulty across easy, medium, and hard.
 - output_type must be \"flashcards\".
 
 User query:
@@ -158,9 +145,6 @@ Source context snippets:
 {source_context_json}
 """.strip()
 
-# ---------------------------------------------------------------------------
-# JSON Schemas (used for validation + injected into prompts)
-# ---------------------------------------------------------------------------
 
 _SOURCE_CONTEXT_SCHEMA: dict[str, Any] = {
     "type": "array",
@@ -230,7 +214,7 @@ FLASHCARDS_SCHEMA: dict[str, Any] = {
         "title": {"type": "string", "minLength": 3},
         "flashcards": {
             "type": "array",
-            "minItems": 8,
+            "minItems": 10,
             "maxItems": 16,
             "items": {
                 "type": "object",
@@ -289,9 +273,6 @@ STUDY_PLAN_SCHEMA: dict[str, Any] = {
     },
 }
 
-# ---------------------------------------------------------------------------
-# Lookup dicts used by GenerationService
-# ---------------------------------------------------------------------------
 
 OUTPUT_SCHEMAS: dict[OutputType, dict[str, Any]] = {
     "quiz": QUIZ_SCHEMA,
